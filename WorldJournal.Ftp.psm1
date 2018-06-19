@@ -4,10 +4,79 @@ WorldJournal.Ftp.psm1
 
     2018-06-05 Initial creation
     2018-06-07 Added 'WebClient-UploadFile', 'WebClient-DownloadFile'
-    2018-06-08 Added 'WebRequest-UploadFile'
+    2018-06-08 Added 'WebRequest-UploadFile' (testing)
 
 #>
 
+
+
+Function WebClient-UploadFile() {
+
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true)][string]$Username,
+        [Parameter(Mandatory=$true)][string]$Password,
+        [Parameter(Mandatory=$true)][string]$RemoteFilePath,
+        [Parameter(Mandatory=$true)][string]$LocalFilePath
+    )
+
+    $webClient = New-Object System.Net.WebClient 
+    $webClient.Credentials = New-Object System.Net.NetworkCredential($Username, $Password)  
+    $uri       = New-Object System.Uri($RemoteFilePath) 
+
+    try{
+        $webClient.UploadFile($uri, $LocalFilePath)
+        $returnParam = @{
+            Verb    = "Upload"
+            Noun    = $RemoteFilePath
+            Status  = "Good"
+        }
+
+    }catch{
+        $returnParam = @{
+            Verb    = "Upload"
+            Noun    = $RemoteFilePath
+            Status  = "Bad"
+            Exception = $_.Exception.Message
+        }
+    }
+
+    return $returnParam
+
+}
+
+Function WebClient-DownloadFile() {
+
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true)][string]$Username,
+        [Parameter(Mandatory=$true)][string]$Password,
+        [Parameter(Mandatory=$true)][string]$RemoteFilePath,
+        [Parameter(Mandatory=$true)][string]$LocalFilePath
+    )
+
+    $webClient = New-Object System.Net.WebClient 
+    $webClient.Credentials = New-Object System.Net.NetworkCredential($Username, $Password)  
+
+    try{
+        $webClient.DownloadFile($RemoteFilePath, $LocalFilePath)
+        $returnParam = @{
+            Verb    = "Download"
+            Noun    = $LocalFilePath
+            Status  = "Good"
+        }
+    }catch{
+        $returnParam = @{
+            Verb    = "Download"
+            Noun    = $LocalFilePath
+            Status  = "Bad"
+            Exception = $_.Exception.Message
+        }
+    }
+
+    return $returnParam
+
+}
 
 function WebRequest-UploadFile {
     param(
@@ -50,71 +119,4 @@ function WebRequest-UploadFile {
 
     $response.Close()
     return $returnParam
-}
-
-
-Function WebClient-UploadFile() {
-
-    [CmdletBinding()]
-    Param(
-        [Parameter(Mandatory=$true)][string]$Username,
-        [Parameter(Mandatory=$true)][string]$Password,
-        [Parameter(Mandatory=$true)][string]$RemoteFilePath,
-        [Parameter(Mandatory=$true)][string]$LocalFilePath
-    )
-
-    $webClient = New-Object System.Net.WebClient 
-    $webClient.Credentials = New-Object System.Net.NetworkCredential($Username, $Password)  
-    $uri       = New-Object System.Uri($RemoteFilePath) 
-
-    try{
-        $webClient.UploadFile($uri, $LocalFilePath)
-        $returnParam = @{
-            Verb    = "Upload"
-            Noun    = "Complete"
-            Status  = "Good"
-        }
-
-    }catch{
-        $returnParam = @{
-            Verb    = "Upload"
-            Noun    = $_.Exception.Message
-            Status  = "Bad"
-        }
-    }
-
-    return $returnParam
-
-}
-
-Function WebClient-DownloadFile() {
-
-    [CmdletBinding()]
-    Param(
-        [Parameter(Mandatory=$true)][string]$Username,
-        [Parameter(Mandatory=$true)][string]$Password,
-        [Parameter(Mandatory=$true)][string]$RemoteFilePath,
-        [Parameter(Mandatory=$true)][string]$LocalFilePath
-    )
-
-    $webClient = New-Object System.Net.WebClient 
-    $webClient.Credentials = New-Object System.Net.NetworkCredential($Username, $Password)  
-
-    try{
-        $webClient.DownloadFile($RemoteFilePath, $LocalFilePath)
-        $returnParam = @{
-            Verb    = "Download"
-            Noun    = "Complete"
-            Status  = "Good"
-        }
-    }catch{
-        $returnParam = @{
-            Verb    = "Download"
-            Noun    = $_.Exception.Message
-            Status  = "Bad"
-        }
-    }
-
-    return $returnParam
-
 }
