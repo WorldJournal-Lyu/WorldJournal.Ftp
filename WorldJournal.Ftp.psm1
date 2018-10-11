@@ -22,26 +22,20 @@ Function WebClient-UploadFile() {
 
     $webClient = New-Object System.Net.WebClient 
     $webClient.Credentials = New-Object System.Net.NetworkCredential($Username, $Password)  
-    $uri       = New-Object System.Uri($RemoteFilePath) 
+    $uri = New-Object System.Uri($RemoteFilePath) 
+    $obj = New-Object -TypeName PSObject
+    $obj | Add-Member -MemberType NoteProperty -Name Verb –value "UPLOAD"
+    $obj | Add-Member -MemberType NoteProperty -Name Noun –value $RemoteFilePath
 
     try{
         $webClient.UploadFile($uri, $LocalFilePath)
-        $returnParam = @{
-            Verb    = "Upload"
-            Noun    = $RemoteFilePath
-            Status  = "Good"
-        }
-
+        $obj | Add-Member -MemberType NoteProperty -Name Status –value "Good"
     }catch{
-        $returnParam = @{
-            Verb    = "Upload"
-            Noun    = $RemoteFilePath
-            Status  = "Bad"
-            Exception = $_.Exception.Message
-        }
+        $obj | Add-Member -MemberType NoteProperty -Name Status –value "Bad"
+        $obj | Add-Member -MemberType NoteProperty -Name Exception –value $_.Exception.Message
     }
 
-    return $returnParam
+    Write-Output $obj
 
 }
 
@@ -57,24 +51,19 @@ Function WebClient-DownloadFile() {
 
     $webClient = New-Object System.Net.WebClient 
     $webClient.Credentials = New-Object System.Net.NetworkCredential($Username, $Password)  
+    $obj = New-Object -TypeName PSObject
+    $obj | Add-Member -MemberType NoteProperty -Name Verb –value "DOWNLOAD"
+    $obj | Add-Member -MemberType NoteProperty -Name Noun –value $LocalFilePath
 
     try{
         $webClient.DownloadFile($RemoteFilePath, $LocalFilePath)
-        $returnParam = @{
-            Verb    = "Download"
-            Noun    = $LocalFilePath
-            Status  = "Good"
-        }
+        $obj | Add-Member -MemberType NoteProperty -Name Status –value "Good"
     }catch{
-        $returnParam = @{
-            Verb    = "Download"
-            Noun    = $LocalFilePath
-            Status  = "Bad"
-            Exception = $_.Exception.Message
-        }
+        $obj | Add-Member -MemberType NoteProperty -Name Status –value "Bad"
+        $obj | Add-Member -MemberType NoteProperty -Name Exception –value $_.Exception.Message
     }
 
-    return $returnParam
+    Write-Output $obj
 
 }
 
@@ -94,6 +83,11 @@ function WebRequest-UploadFile {
     $ftpWebRequest.Credentials = New-Object System.Net.NetworkCredential($Username,$Password)
     $ftpWebRequest.ContentLength = $localFileContent.Length
 
+
+    $obj = New-Object -TypeName PSObject
+    $obj | Add-Member -MemberType NoteProperty -Name Verb –value "UPLOAD"
+    $obj | Add-Member -MemberType NoteProperty -Name Noun –value $RemoteFilePath
+
     try{
 
         $requestStream = $ftpWebRequest.GetRequestStream()
@@ -101,22 +95,108 @@ function WebRequest-UploadFile {
         $requestStream.Close()
         $response = $ftpWebRequest.GetResponse()    
 
-        $returnParam = @{
-            Verb    = "Upload"
-            Noun    = ($response.StatusDescription).substring(0, ($response.StatusDescription).Length-3)
-            Status  = "Good"
-        }
+        $obj | Add-Member -MemberType NoteProperty -Name Status –value "Good"
 
     }catch{
 
-        $returnParam = @{
-            Verb    = "Upload"
-            Noun    = $_.Exception.Message
-            Status  = "Bad"
-        }
+        $obj | Add-Member -MemberType NoteProperty -Name Status –value "Bad"
+        $obj | Add-Member -MemberType NoteProperty -Name Exception –value $_.Exception.Message
 
     }
 
     $response.Close()
-    return $returnParam
+    Write-Output $obj
 }
+
+
+
+
+function WebRequest-RemoveFile {
+    param(
+        [Parameter(Mandatory=$true)][string]$Username,
+        [Parameter(Mandatory=$true)][string]$Password,
+        [Parameter(Mandatory=$true)][string]$RemoteFilePath
+    )
+
+    $obj = New-Object -TypeName PSObject
+    $obj | Add-Member -MemberType NoteProperty -Name Verb –value "REMOVE"
+    $obj | Add-Member -MemberType NoteProperty -Name Noun –value $RemoteFilePath
+
+    try{
+        $ftpWebRequest = [System.Net.FtpWebRequest]::Create($RemoteFilePath)
+        $ftpWebRequest.Method = [System.Net.WebRequestMethods+Ftp]::DeleteFile
+        $ftpWebRequest.Credentials = New-Object System.Net.NetworkCredential($Username,$Password)
+        $response = $ftpWebRequest.GetResponse()
+        $obj | Add-Member -MemberType NoteProperty -Name Status –value "Good"
+    }catch{
+        $obj | Add-Member -MemberType NoteProperty -Name Status –value "Bad"
+        $obj | Add-Member -MemberType NoteProperty -Name Exception –value $_.Exception.Message
+    }
+
+    Write-Output $obj
+}
+
+function WebRequest-RemoveFolder {
+    param(
+        [Parameter(Mandatory=$true)][string]$Username,
+        [Parameter(Mandatory=$true)][string]$Password,
+        [Parameter(Mandatory=$true)][string]$RemoteFolderPath
+    )
+
+    $obj = New-Object -TypeName PSObject
+    $obj | Add-Member -MemberType NoteProperty -Name Verb –value "REMOVE"
+    $obj | Add-Member -MemberType NoteProperty -Name Noun –value $RemoteFolderPath
+
+    try{
+        $ftpWebRequest = [System.Net.FtpWebRequest]::Create($RemoteFolderPath)
+        $ftpWebRequest.Method = [System.Net.WebRequestMethods+Ftp]::RemoveDirectory
+        $ftpWebRequest.Credentials = New-Object System.Net.NetworkCredential($Username,$Password)
+        $response = $ftpWebRequest.GetResponse()
+        $obj | Add-Member -MemberType NoteProperty -Name Status –value "Good"
+    }catch{
+        $obj | Add-Member -MemberType NoteProperty -Name Status –value "Bad"
+        $obj | Add-Member -MemberType NoteProperty -Name Exception –value $_.Exception.Message
+    }
+
+    Write-Output $obj
+}
+
+function WebRequest-ListDirectory {
+    param(
+        [Parameter(Mandatory=$true)][string]$Username,
+        [Parameter(Mandatory=$true)][string]$Password,
+        [Parameter(Mandatory=$true)][string]$RemoteFolderPath
+    )
+
+    $obj = New-Object -TypeName PSObject
+    $obj | Add-Member -MemberType NoteProperty -Name Verb –value "LIST"
+    $obj | Add-Member -MemberType NoteProperty -Name Noun –value $RemoteFolderPath
+
+    try{
+        $ftpWebRequest = [System.Net.FtpWebRequest]::Create($RemoteFolderPath)
+        $ftpWebRequest.Method = [System.Net.WebRequestMethods+Ftp]::ListDirectory
+        $ftpWebRequest.Credentials = New-Object System.Net.NetworkCredential($Username,$Password)
+        $response = $ftpWebRequest.GetResponse()
+
+        $responseStream = $response.GetResponseStream()
+        $streamReader = New-Object System.IO.StreamReader $responseStream  
+   
+        $files = New-Object System.Collections.ArrayList
+        While ($file = $streamReader.ReadLine()){
+            [void] $files.add("$file")
+        }
+        $streamReader.close()
+        $responseStream.close()
+        $response.Close()
+
+        $obj | Add-Member -MemberType NoteProperty -Name Status –value "Good"
+        $obj | Add-Member -MemberType NoteProperty -Name List –value $files
+
+    }catch{
+        $obj | Add-Member -MemberType NoteProperty -Name Status –value "Bad"
+        $obj | Add-Member -MemberType NoteProperty -Name Exception –value $_.Exception.Message
+    }
+
+    Write-Output $obj
+}
+
