@@ -94,7 +94,7 @@ function WebRequest-UploadFile {
         $requestStream.Write($localFileContent, 0, $localFileContent.Length)
         $requestStream.Close()
         $response = $ftpWebRequest.GetResponse()    
-
+        $response.Close()
         $obj | Add-Member -MemberType NoteProperty -Name Status –value "Good"
 
     }catch{
@@ -127,6 +127,7 @@ function WebRequest-RemoveFile {
         $ftpWebRequest.Method = [System.Net.WebRequestMethods+Ftp]::DeleteFile
         $ftpWebRequest.Credentials = New-Object System.Net.NetworkCredential($Username,$Password)
         $response = $ftpWebRequest.GetResponse()
+        $response.Close()
         $obj | Add-Member -MemberType NoteProperty -Name Status –value "Good"
     }catch{
         $obj | Add-Member -MemberType NoteProperty -Name Status –value "Bad"
@@ -152,6 +153,7 @@ function WebRequest-RemoveFolder {
         $ftpWebRequest.Method = [System.Net.WebRequestMethods+Ftp]::RemoveDirectory
         $ftpWebRequest.Credentials = New-Object System.Net.NetworkCredential($Username,$Password)
         $response = $ftpWebRequest.GetResponse()
+        $response.Close()
         $obj | Add-Member -MemberType NoteProperty -Name Status –value "Good"
     }catch{
         $obj | Add-Member -MemberType NoteProperty -Name Status –value "Bad"
@@ -183,7 +185,9 @@ function WebRequest-ListDirectory {
    
         $files = New-Object System.Collections.ArrayList
         While ($file = $streamReader.ReadLine()){
-            [void] $files.add("$file")
+            if( ($file -ne ".") -and ($file -ne "..") ){
+                [void] $files.add("$file")
+            }
         }
         $streamReader.close()
         $responseStream.close()
@@ -200,3 +204,28 @@ function WebRequest-ListDirectory {
     Write-Output $obj
 }
 
+function WebRequest-TestPath {
+    param(
+        [Parameter(Mandatory=$true)][string]$Username,
+        [Parameter(Mandatory=$true)][string]$Password,
+        [Parameter(Mandatory=$true)][string]$RemoteFolderPath
+    )
+
+    $obj = New-Object -TypeName PSObject
+    $obj | Add-Member -MemberType NoteProperty -Name Verb –value "TEST-PATH"
+    $obj | Add-Member -MemberType NoteProperty -Name Noun –value $RemoteFolderPath
+
+    try{
+        $ftpWebRequest = [System.Net.FtpWebRequest]::Create($RemoteFolderPath)
+        $ftpWebRequest.Method = [System.Net.WebRequestMethods+Ftp]::ListDirectoryDetails
+        $ftpWebRequest.Credentials = New-Object System.Net.NetworkCredential($Username,$Password)
+        $response = $ftpWebRequest.GetResponse()
+        $response.Close()
+        $obj | Add-Member -MemberType NoteProperty -Name Status –value "Good"
+    }catch{
+        $obj | Add-Member -MemberType NoteProperty -Name Status –value "Bad"
+        $obj | Add-Member -MemberType NoteProperty -Name Exception –value $_.Exception.Message
+    }
+
+    Write-Output $obj
+}
